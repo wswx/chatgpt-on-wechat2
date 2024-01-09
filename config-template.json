@@ -1,6 +1,10 @@
 {
   "channel_type": "feishu",
   "feishu_port": 80,
+  "feishu_app_id": "cli_a5167cd1f4be500d",
+  "feishu_app_secret": "oouyBjnxz1oCbTnnutzjYc7z4YY8CXdB",
+  "feishu_token": "sip8KgWlG8tuRXsYxmgNOb5BnjOHMCwC",
+  "feishu_bot_name": "AI"
   "model": "",
   "open_ai_api_key": "YOUR API KEY",
   "text_to_image": "dall-e-2",
