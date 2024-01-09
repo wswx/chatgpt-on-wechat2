@@ -1,5 +1,6 @@
 {
-  "channel_type": "wx",
+  "channel_type": "feishu",
+  "feishu_port": 80,
   "model": "",
   "open_ai_api_key": "YOUR API KEY",
   "text_to_image": "dall-e-2",
