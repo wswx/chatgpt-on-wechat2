@@ -32,4 +32,6 @@ RUN chmod +x /entrypoint.sh \
 
 USER noroot
 
+EXPOSE 80
+
 ENTRYPOINT ["/entrypoint.sh"]
