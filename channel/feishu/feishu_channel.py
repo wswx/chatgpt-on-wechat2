@@ -269,6 +269,9 @@ class FeishuController:
     MESSAGE_RECEIVE_TYPE = "im.message.receive_v1"
     user_tokens = {}
 
+    def build_html_str(self,body,color="black"):
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>授权</title><style>body {font-size: 50px;color: '+color+';}</style></head><body><p>'+body+'</p></body></html>'
+
     def GET(self):
         web.header('Content-Type', 'text/html;charset=utf-8')
         code = web.input(code=None).code
@@ -277,18 +280,18 @@ class FeishuController:
             token = channel.fetch_access_token()
             user_token_info = channel.get_user_token_by_code(code, token)
             if not user_token_info:
-                return "授权失败，请重新点击授权按钮".encode("utf-8")
+                return self.build_html_str("授权失败，请重新点击授权按钮","red")
             user_token = user_token_info["access_token"]
             long_info = channel.get_login_info(user_token)
             if not long_info:
-                return "授权失败，请重新点击授权按钮"
+                return self.build_html_str("授权失败，请重新点击授权按钮","red")
             open_id = long_info["open_id"]
             logger.info(open_id)
             if open_id:
                 channel.save_user_token(open_id, user_token_info)
-                return "授权成功"
+                return self.build_html_str("授权成功")
             else:
-                return "授权失败，请重新点击授权按钮"
+                return self.build_html_str("授权失败，请重新点击授权按钮","red")
         return "Feishu service start success!"
 
     def POST(self):
