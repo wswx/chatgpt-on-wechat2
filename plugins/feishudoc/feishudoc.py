@@ -10,7 +10,7 @@ import json
 from bridge.bridge import Bridge
 from bridge.context import ContextType
 from bridge.context import Context
-from urllib.parse import urlencode
+from urllib.parse import quote
 import uuid
 
 
@@ -42,7 +42,7 @@ class Feishudoc(Plugin):
         if not user_token_info:
             ## 发送授权请求
             url = f"https://open.feishu.cn/open-apis/authen/v1/authorize?app_id={channel.feishu_app_id}&redirect_uri={channel.feishu_host}&scope=drive:drive"
-            url_encode = urlencode(url)
+            url_encode = quote(url)
             logger.info(url_encode)
             ##卡片消息内容
             content= '{"config":{"wide_screen_mode":true},"elements":[{"tag":"action","actions":[{"tag":"button","text":{"tag":"plain_text","content":"确认授权"},"type":"primary","multi_url":{"url":"https://applink.feishu.cn/client/web_url/open?mode=sidebar-semi&url='+url_encode+'","pc_url":"","android_url":"","ios_url":""}}]}],"header":{"template":"blue","title":{"content":"请授权","tag":"plain_text"}}}'
