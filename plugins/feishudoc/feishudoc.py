@@ -150,8 +150,10 @@ def build_reply_str(document_id, docs_type, content, keyword):
 
 
 def get_href(document_id, type):
-    if type in ["docx","doc"]:
+    if "docx" == type:
         return f"https://kvzrmko3cx.feishu.cn/docx/{document_id}"
+    if "doc" == type:
+        return f"https://kvzrmko3cx.feishu.cn/docs/{document_id}"
     if "sheet" == type:
         return f"https://kvzrmko3cx.feishu.cn/sheet/{document_id}"
     return ""
