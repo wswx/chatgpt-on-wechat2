@@ -202,6 +202,8 @@ class FeiShuChanel(ChatChannel):
         self.user_tokens[open_id] = user_token
 
     def get_and_check_user_token(self, open_id) -> dict:
+        if open_id not in self.user_tokens:
+            return None
         user_token = self.user_tokens[open_id]
         if not user_token:
             return None
@@ -249,6 +251,7 @@ class FeishuController:
     user_tokens = {}
 
     def GET(self):
+        web.header('Content-Type', 'text/html;charset=utf-8')
         code = web.input(code=None).code
         if code:
             channel = FeiShuChanel()
