@@ -132,7 +132,8 @@ available_setting = {
     "feishu_app_secret": "",  # 飞书机器人APP secret
     "feishu_token": "",  # 飞书 verification token
     "feishu_bot_name": "",  # 飞书机器人的名字
-    
+    "feishu_host": "",  # 飞书接收授权code的地址
+
     # 钉钉配置
     "dingtalk_client_id": "",  # 钉钉机器人Client ID 
     "dingtalk_client_secret": "",  # 钉钉机器人Client Secret 

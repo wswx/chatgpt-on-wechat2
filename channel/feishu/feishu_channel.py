@@ -6,6 +6,7 @@
 """
 
 # -*- coding=utf-8 -*-
+import time
 import uuid
 
 import requests
@@ -31,6 +32,8 @@ class FeiShuChanel(ChatChannel):
     feishu_app_id = conf().get('feishu_app_id')
     feishu_app_secret = conf().get('feishu_app_secret')
     feishu_token = conf().get('feishu_token')
+    feishu_host = conf().get('feishu_host')
+    user_tokens = {}  ##用户token
 
     def __init__(self):
         super().__init__()
@@ -76,6 +79,11 @@ class FeiShuChanel(ChatChannel):
                 "msg_type": msg_type,
                 "content": json.dumps({content_key: reply_content})
             }
+            if reply.type == ReplyType.INTERACTIVE:
+                data = {
+                    "msg_type": "interactive",
+                    "content": reply_content
+                }
             res = requests.post(url=url, headers=headers, json=data, timeout=(5, 10))
         else:
             url = "https://open.feishu.cn/open-apis/im/v1/messages"
@@ -85,13 +93,18 @@ class FeiShuChanel(ChatChannel):
                 "msg_type": msg_type,
                 "content": json.dumps({content_key: reply_content})
             }
+            if reply.type == ReplyType.INTERACTIVE:
+                data = {
+                    "receive_id": context.get("receiver"),
+                    "msg_type": "interactive",
+                    "content": reply_content
+                }
             res = requests.post(url=url, headers=headers, params=params, json=data, timeout=(5, 10))
         res = res.json()
         if res.get("code") == 0:
             logger.info(f"[FeiShu] send message success")
         else:
             logger.error(f"[FeiShu] send message failed, code={res.get('code')}, msg={res.get('msg')}")
-
 
     def fetch_access_token(self) -> str:
         url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/"
@@ -114,6 +127,94 @@ class FeiShuChanel(ChatChannel):
         else:
             logger.error(f"[FeiShu] fetch token error, res={response}")
 
+    def get_user_token_by_code(self, code, token) -> dict:
+        url = "https://open.feishu.cn/open-apis/authen/v1/oidc/access_token"
+        headers = {
+            "Content-Type": "application/json",
+            'Authorization': f'Bearer {token}',
+        }
+        req_body = {
+            "grant_type": "authorization_code",
+            "code": code
+        }
+        data = bytes(json.dumps(req_body), encoding='utf8')
+        response = requests.post(url=url, data=data, headers=headers)
+        if response.status_code == 200:
+            res = response.json()
+            if res.get("code") != 0:
+                logger.error(f"[FeiShu]  get_access_token_by_code error, code={res.get('code')}, msg={res.get('msg')}")
+                return {}
+            else:
+                return self.wrapper_user_token(res.get("data"))
+        else:
+            logger.error(f"[FeiShu] get_access_token_by_code error, res={response}")
+
+    def wrapper_user_token(self, user_token) -> dict:
+        if user_token:
+            now = int(time.time())
+            expires_in = user_token["expires_in"]
+            refresh_expires_in = user_token["refresh_expires_in"]
+            user_token["expires_time"] = now + expires_in
+            user_token["refresh_expires_time"] = now + refresh_expires_in
+        return user_token
+
+
+    def refresh_user_token(self,  refresh_token) -> dict:
+        token =self.fetch_access_token()
+        url = "https://open.feishu.cn/open-apis/authen/v1/oidc/refresh_access_token"
+        headers = {
+            "Content-Type": "application/json",
+            'Authorization': f'Bearer {token}',
+        }
+        req_body = {
+          "grant_type": "refresh_token",
+          "refresh_token": refresh_token
+        }
+        data = bytes(json.dumps(req_body), encoding='utf8')
+        response = requests.post(url=url, data=data, headers=headers)
+        if response.status_code == 200:
+            res = response.json()
+            if res.get("code") != 0:
+                logger.error(f"[FeiShu]  refresh_user_token error, code={res.get('code')}, msg={res.get('msg')}")
+                return {}
+            else:
+                return self.wrapper_user_token(res.get("data"))
+        else:
+            logger.error(f"[FeiShu] refresh_user_token error, res={response}")
+
+    def get_login_info(self, user_token) -> dict:
+        url = "https://open.feishu.cn/open-apis/authen/v1/user_info"
+        headers = {
+            'Authorization': f'Bearer {user_token}',
+        }
+        response = requests.get(url=url, headers=headers)
+        if response.status_code == 200:
+            res = response.json()
+            if res.get("code") != 0:
+                logger.error(f"[FeiShu]  get_login_info error, code={res.get('code')}, msg={res.get('msg')}")
+                return {}
+            else:
+                return res.get("data")
+        else:
+            logger.error(f"[FeiShu] get_login_info error, res={response}")
+
+    def save_user_token(self, open_id, user_token):
+        self.user_tokens[open_id] = user_token
+
+    def get_and_check_user_token(self, open_id) -> dict:
+        user_token = self.user_tokens[open_id]
+        if not user_token:
+            return None
+        expires_time = user_token["expires_time"]
+        now = int(time.time())
+        if expires_time and expires_time < now:
+            return user_token
+        refresh_expires_time = user_token["refresh_expires_time"]
+        if refresh_expires_time and refresh_expires_time <= now:
+            user_token = self.refresh_user_token(user_token["refresh_token"])
+            self.save_user_token(open_id,user_token)
+            return user_token
+        return None
 
     def _upload_image_url(self, img_url, access_token):
         logger.debug(f"[WX] start download image, img_url={img_url}")
@@ -140,14 +241,32 @@ class FeiShuChanel(ChatChannel):
             return upload_response.json().get("data").get("image_key")
 
 
-
 class FeishuController:
     # 类常量
     FAILED_MSG = '{"success": false}'
     SUCCESS_MSG = '{"success": true}'
     MESSAGE_RECEIVE_TYPE = "im.message.receive_v1"
+    user_tokens = {}
 
     def GET(self):
+        code = web.input(code=None).code
+        if code:
+            channel = FeiShuChanel()
+            token = channel.fetch_access_token()
+            user_token_info = channel.get_user_token_by_code(code, token)
+            if not user_token_info:
+                return "授权失败，请重新点击授权按钮".encode("utf-8")
+            user_token = user_token_info["access_token"]
+            long_info = channel.get_login_info(user_token)
+            if not long_info:
+                return "授权失败，请重新点击授权按钮"
+            open_id = long_info["open_id"]
+            logger.info(open_id)
+            if open_id:
+                channel.save_user_token(open_id, user_token_info)
+                return "授权成功"
+            else:
+                return "授权失败，请重新点击授权按钮"
         return "Feishu service start success!"
 
     def POST(self):
@@ -188,7 +307,8 @@ class FeishuController:
                     if not msg.get("mentions") and msg.get("message_type") == "text":
                         # 群聊中未@不响应
                         return self.SUCCESS_MSG
-                    if msg.get("mentions")[0].get("name") != conf().get("feishu_bot_name") and msg.get("message_type") == "text":
+                    if msg.get("mentions")[0].get("name") != conf().get("feishu_bot_name") and msg.get(
+                            "message_type") == "text":
                         # 不是@机器人，不响应
                         return self.SUCCESS_MSG
                     # 群聊

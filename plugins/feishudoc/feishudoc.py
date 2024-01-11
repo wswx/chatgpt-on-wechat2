@@ -10,6 +10,7 @@ import json
 from bridge.bridge import Bridge
 from bridge.context import ContextType
 from bridge.context import Context
+from urllib.parse import urlencode
 import uuid
 
 
@@ -36,6 +37,20 @@ class Feishudoc(Plugin):
         if "飞书文档" not in input or not isinstance(msg,FeishuMessage):
             return
         logger.info("命中飞书文档插件")
+        channel = e_context["channel"]
+        user_token_info = channel.get_and_check_user_token(msg.from_user_id)
+        if not user_token_info:
+            ## 发送授权请求
+            url = f"https://open.feishu.cn/open-apis/authen/v1/authorize?app_id={channel.feishu_app_id}&redirect_uri={channel.feishu_host}&scope=drive:drive"
+            url_encode = urlencode(url)
+            logger.info(url_encode)
+            ##卡片消息内容
+            content= '{"config":{"wide_screen_mode":true},"elements":[{"tag":"action","actions":[{"tag":"button","text":{"tag":"plain_text","content":"确认授权"},"type":"primary","multi_url":{"url":"https://applink.feishu.cn/client/web_url/open?mode=sidebar-semi&url='+url_encode+'","pc_url":"","android_url":"","ios_url":""}}]}],"header":{"template":"blue","title":{"content":"请授权","tag":"plain_text"}}}'
+            logger.info(content)
+            reply = Reply(ReplyType.INTERACTIVE,content)
+            e_context["reply"] = reply
+            e_context.action = EventAction.BREAK_PASS
+        user_token = user_token_info["access_token"]
         query = """下面这段用户输入中，帮我分析用户是想从飞书中查找什么内容，请以这种格式返回:{
           "query_keywords": ""
         }
@@ -47,7 +62,7 @@ class Feishudoc(Plugin):
         logger.info(f"feishudoc keyword :{keyword}")
 
         token = msg.access_token
-        docs = search_doc(keyword, token)
+        docs = search_doc(keyword, user_token)## 这里得用用户token，才能搜索到文档
         if len(docs) <= 0:
             logger.info("搜索文档结果为空")
             reply = Reply(ReplyType.INFO, "未找到文档")
