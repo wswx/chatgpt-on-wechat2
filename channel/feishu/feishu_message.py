@@ -22,6 +22,27 @@ class FeishuMessage(ChatMessage):
             self.ctype = ContextType.TEXT
             content = json.loads(msg.get('content'))
             self.content = content.get("text").strip()
+        if msg_type == "audio":
+            self.ctype = ContextType.VOICE
+            content = json.loads(msg.get('content'))
+            file_key = content.get("file_key")
+            self.content = TmpDir().path() + file_key
+            def _download_file():
+                # 如果响应状态码是200，则将响应内容写入本地文件
+                url = f"https://open.feishu.cn/open-apis/im/v1/messages/{self.msg_id}/resources/{file_key}"
+                headers = {
+                    "Authorization": "Bearer " + access_token,
+                }
+                params = {
+                    "type": "file"
+                }
+                response = requests.get(url=url, headers=headers, params=params)
+                if response.status_code == 200:
+                    with open(self.content, "wb") as f:
+                        f.write(response.content)
+                else:
+                    logger.info(f"[FeiShu] Failed to download file, key={file_key}, res={response.text}")
+            self._prepare_fn = _download_file
         elif msg_type == "file":
             self.ctype = ContextType.FILE
             content = json.loads(msg.get("content"))
