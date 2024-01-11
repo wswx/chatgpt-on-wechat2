@@ -209,16 +209,20 @@ class FeiShuChanel(ChatChannel):
         logger.info(open_id)
         logger.info(self.user_tokens)
         if open_id not in self.user_tokens:
+            logger.info("open_id not in self.user_tokens")
             return None
         user_token = self.user_tokens[open_id]
         if not user_token:
+            logger.info("not user_token")
             return None
         expires_time = user_token["expires_time"]
         now = int(time.time())
         if expires_time and expires_time < now:
+            logger.info("expires_time and expires_time < now")
             return user_token
         refresh_expires_time = user_token["refresh_expires_time"]
         if refresh_expires_time and refresh_expires_time <= now:
+            logger.info("refresh_expires_time and refresh_expires_time <= now")
             user_token = self.refresh_user_token(user_token["refresh_token"])
             self.save_user_token(open_id,user_token)
             return user_token

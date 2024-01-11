@@ -39,6 +39,7 @@ class Feishudoc(Plugin):
         logger.info("命中飞书文档插件")
         channel = e_context["channel"]
         user_token_info = channel.get_and_check_user_token(msg.from_user_id)
+        logger.info(user_token_info)
         if not user_token_info:
             ## 发送授权请求
             url = f"https://open.feishu.cn/open-apis/authen/v1/authorize?app_id={channel.feishu_app_id}&redirect_uri={channel.feishu_host}&scope=drive:drive"
