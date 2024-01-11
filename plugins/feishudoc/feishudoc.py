@@ -50,6 +50,7 @@ class Feishudoc(Plugin):
             reply = Reply(ReplyType.INTERACTIVE,content)
             e_context["reply"] = reply
             e_context.action = EventAction.BREAK_PASS
+            return
         user_token = user_token_info["access_token"]
         query = """下面这段用户输入中，帮我分析用户是想从飞书中查找什么内容，请以这种格式返回:{
           "query_keywords": ""
