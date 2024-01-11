@@ -199,9 +199,15 @@ class FeiShuChanel(ChatChannel):
             logger.error(f"[FeiShu] get_login_info error, res={response}")
 
     def save_user_token(self, open_id, user_token):
+        logger.info("save")
+        logger.info(open_id)
+        logger.info(self.user_tokens)
         self.user_tokens[open_id] = user_token
 
     def get_and_check_user_token(self, open_id) -> dict:
+        logger.info("get_and_check_user_token")
+        logger.info(open_id)
+        logger.info(self.user_tokens)
         if open_id not in self.user_tokens:
             return None
         user_token = self.user_tokens[open_id]
