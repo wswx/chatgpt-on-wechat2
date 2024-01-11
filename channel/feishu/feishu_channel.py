@@ -34,6 +34,7 @@ class FeiShuChanel(ChatChannel):
     feishu_token = conf().get('feishu_token')
     feishu_host = conf().get('feishu_host')
     user_tokens = {}  ##用户token
+    user_context = {}  ##存触发用户授权的context，授权后取出重新入队
 
     def __init__(self):
         super().__init__()
@@ -199,10 +200,22 @@ class FeiShuChanel(ChatChannel):
             logger.error(f"[FeiShu] get_login_info error, res={response}")
 
     def save_user_token(self, open_id, user_token):
-        logger.info("save")
+        logger.info("save_user_token")
         logger.info(open_id)
         logger.info(user_token)
         self.user_tokens[open_id] = user_token
+        if open_id in self.user_context:
+            context = self.user_context[open_id]
+            del self.user_context[open_id]
+            if context:
+                logger.info(f"重新入队：{context}")
+                self.produce(context)
+
+
+    def save_user_context(self, open_id, context:Context):
+        logger.info("save_user_context")
+        logger.info(open_id)
+        self.user_context[open_id] = context
 
     def get_and_check_user_token(self, open_id) -> dict:
         if open_id not in self.user_tokens:
