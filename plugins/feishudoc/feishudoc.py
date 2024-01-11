@@ -54,9 +54,7 @@ class Feishudoc(Plugin):
             channel.save_user_context(msg.from_user_id,e_context["context"])
             return
         user_token = user_token_info["access_token"]
-        query = """下面这段用户输入中，帮我分析用户是想从飞书文档中查找什么内容，请以这种格式返回:{
-          "query_keywords": ""
-        }
+        query = """下面这段用户输入中，帮我分析用户是想从飞书文档中查找什么内容，请以这种格式返回:{"query_keywords":""}，
         用户输入为：""" + input
         context = Context(ContextType.TEXT, query)
         context["session_id"] = uuid.uuid4()
@@ -135,13 +133,15 @@ def get_doc_content(document_id, access_token):
 def build_reply_str(document_id, docs_type, content, keyword):
     relpy_str = ""
     if content:
-        start_index = content.find(keyword)
+        start_index = 0
+        if keyword:
+            start_index = content.find(keyword)
         if start_index < 0:
             start_index = 0
         end_index = start_index + 100
         e = content.find("\n", end_index)
         if e != -1:
-            end_index = e;
+            end_index = e
         result = content[start_index: end_index]  # 进行切片操作得到截取结果
         relpy_str += result
     relpy_str = relpy_str + f"\n----------------------\n 文档地址:{get_href(document_id, docs_type)}"
