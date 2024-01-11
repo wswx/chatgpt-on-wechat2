@@ -48,10 +48,10 @@ class Feishudoc(Plugin):
             ##卡片消息内容
             content= '{"config":{"wide_screen_mode":true},"elements":[{"tag":"action","actions":[{"tag":"button","text":{"tag":"plain_text","content":"确认授权"},"type":"primary","multi_url":{"url":"https://applink.feishu.cn/client/web_url/open?mode=sidebar-semi&url='+url_encode+'","pc_url":"","android_url":"","ios_url":""}}]}],"header":{"template":"blue","title":{"content":"请授权","tag":"plain_text"}}}'
             logger.info(content)
-            reply = Reply(ReplyType.INTERACTIVE,e_context["context"])
+            reply = Reply(ReplyType.INTERACTIVE,content)
             e_context["reply"] = reply
             e_context.action = EventAction.BREAK_PASS
-            channel.save_user_context(msg.from_user_id,)
+            channel.save_user_context(msg.from_user_id,e_context["context"])
             return
         user_token = user_token_info["access_token"]
         query = """下面这段用户输入中，帮我分析用户是想从飞书中查找什么内容，请以这种格式返回:{
