@@ -22,7 +22,7 @@ class FeishuMessage(ChatMessage):
             self.ctype = ContextType.TEXT
             content = json.loads(msg.get('content'))
             self.content = content.get("text").strip()
-        if msg_type == "audio":
+        elif msg_type == "audio":
             self.ctype = ContextType.VOICE
             content = json.loads(msg.get('content'))
             file_key = content.get("file_key")
